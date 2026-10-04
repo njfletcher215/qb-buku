@@ -19,7 +19,11 @@ while [[ $# -gt 0 ]]; do
         -t) new_tab=true; shift ;;
         --dmenu-invocation)
             [[ $# -lt 2 ]] && usage
-            IFS=' ' read -ra DMENU_CMD <<< "$2"
+            # split on whitespace, respecting quotes (but not performing any other shell expansion)
+            DMENU_CMD=()
+            while IFS= read -r -d '' word; do
+                DMENU_CMD+=("$word")
+            done < <(xargs printf '%s\0' <<< "$2")
             shift 2
             ;;
         -h|--help) usage ;;
