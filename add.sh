@@ -7,9 +7,21 @@ source "$here/lib.sh"
 source "$here/config.sh"
 
 usage() {
-    echo "Usage: $(basename "$0") URL [+|-] [tag, ...]" >&2
+    echo "Usage: $(basename "$0") [--auto-fetch-tags[=<true|false>]] URL [+|-] [tag, ...]" >&2
+    echo "  --auto-fetch-tags[=<true|false>]  override AUTO_FETCH_TAGS for this invocation (bare flag means true)" >&2
+    echo "  URL                               page to bookmark" >&2
+    echo "  +|-                               fetch tags from the page first, then merge (+) or remove (-) any given tags" >&2
+    echo "  tag, ...                          comma-separated tags to add" >&2
     exit 1
 }
+
+while [[ "${1:-}" == --auto-fetch-tags || "${1:-}" == --auto-fetch-tags=* ]]; do
+    case "$1" in
+        --auto-fetch-tags) AUTO_FETCH_TAGS=true ;;
+        --auto-fetch-tags=*) AUTO_FETCH_TAGS="${1#--auto-fetch-tags=}" ;;
+    esac
+    shift
+done
 
 if [[ $# -lt 1 ]]; then
     [[ -z "${QUTE_URL:-}" ]] && usage

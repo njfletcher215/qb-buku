@@ -7,8 +7,9 @@ source "$here/lib.sh"
 source "$here/config.sh"
 
 usage() {
-    echo "Usage: $(basename "$0") [-t]" >&2
-    echo "  -t  open first result in a new tab (subsequent results always open in new tabs)" >&2
+    echo "Usage: $(basename "$0") [-t] [--dmenu-invocation <cmd>]" >&2
+    echo "  -t                        open first result in a new tab (subsequent results always open in new tabs)" >&2
+    echo "  --dmenu-invocation <cmd>  override DMENU_CMD for this invocation" >&2
     exit 1
 }
 
@@ -16,6 +17,11 @@ new_tab=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -t) new_tab=true; shift ;;
+        --dmenu-invocation)
+            [[ $# -lt 2 ]] && usage
+            IFS=' ' read -ra DMENU_CMD <<< "$2"
+            shift 2
+            ;;
         -h|--help) usage ;;
         *) usage ;;
     esac

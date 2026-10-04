@@ -7,11 +7,22 @@ source "$here/lib.sh"
 source "$here/config.sh"
 
 usage() {
-    echo "Usage: $(basename "$0") <id|URL> url <new-url>" >&2
-    echo "       $(basename "$0") <id|URL> title <new-title>" >&2
-    echo "       $(basename "$0") <id|URL> tags [+|-] <tag [tag ...]>" >&2
+    echo "Usage: $(basename "$0") [--python-invocation <path>] <id|URL> url <new-url>" >&2
+    echo "       $(basename "$0") [--python-invocation <path>] <id|URL> title <new-title>" >&2
+    echo "       $(basename "$0") [--python-invocation <path>] <id|URL> tags [+|-] <tag [tag ...]>" >&2
+    echo "  --python-invocation <path>  override PYTHON for this invocation" >&2
+    echo "  id|URL                      bookmark index or exact URL to update" >&2
+    echo "  url <new-url>               set the bookmark's URL" >&2
+    echo "  title <new-title>           set the bookmark's title" >&2
+    echo "  tags [+|-] <tag [tag ...]>  set, append (+), or remove (-) tags" >&2
     exit 1
 }
+
+while [[ "${1:-}" == --python-invocation ]]; do
+    [[ $# -lt 2 ]] && usage
+    PYTHON="$2"
+    shift 2
+done
 
 if [[ $# -lt 2 ]]; then
     usage

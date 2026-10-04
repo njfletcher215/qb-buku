@@ -9,12 +9,19 @@ source "$here/lib.sh"
 source "$here/config.sh"
 
 usage() {
-    echo "Usage: $(basename "$0") <index [index ...]|range|URL ...>" >&2
-    echo "  index   one or more positive integers" >&2
-    echo "  range   a single range in the form N-M (e.g. 3-7)" >&2
-    echo "  URL     exact URL to look up and delete" >&2
+    echo "Usage: $(basename "$0") [--python-invocation <path>] <index [index ...]|range|URL ...>" >&2
+    echo "  --python-invocation <path>  override PYTHON for this invocation" >&2
+    echo "  index                       one or more positive integers" >&2
+    echo "  range                       a single range in the form N-M (e.g. 3-7)" >&2
+    echo "  URL                         exact URL to look up and delete" >&2
     exit 1
 }
+
+while [[ "${1:-}" == --python-invocation ]]; do
+    [[ $# -lt 2 ]] && usage
+    PYTHON="$2"
+    shift 2
+done
 
 if [[ $# -lt 1 ]]; then
     [[ -z "${QUTE_URL:-}" ]] && usage

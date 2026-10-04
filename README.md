@@ -102,6 +102,8 @@ DMENU_CMD=(fuzzel --dmenu -p "bookmark")
 DMENU_CMD=(dmenu -i -p "bookmark")
 ```
 
+Can be overridden per-invocation with `buku-browse`'s `--dmenu-invocation <cmd>` flag.
+
 ### `AUTO_FETCH_TAGS`
 
 When `true`, `buku-add` automatically passes `+` to buku when tags are provided, so
@@ -113,6 +115,9 @@ AUTO_FETCH_TAGS=true   # fetch and merge tags automatically
 AUTO_FETCH_TAGS=false  # only use explicitly provided tags
 ```
 
+Can be overridden per-invocation with `buku-add`'s `--auto-fetch-tags[=<true|false>]`
+flag (bare `--auto-fetch-tags` means `true`).
+
 ### `PYTHON`
 
 Path to the Python interpreter that has the `buku` module installed. Set automatically
@@ -122,12 +127,15 @@ by `install.sh`.
 PYTHON=/home/you/.local/share/qb-buku/venv/bin/python3
 ```
 
+Can be overridden per-invocation with `buku-delete`'s or `buku-update`'s
+`--python-invocation <path>` flag.
+
 ## Usage
 
 ### `buku-add`
 
 ```
-:buku-add [+|-] [tag, ...]
+:buku-add [--auto-fetch-tags[=<true|false>]] [+|-] [tag, ...]
 ```
 
 Bookmark the current page. When invoked with no arguments, uses the current page's URL.
@@ -145,7 +153,7 @@ The '-' modifier does the same, but removes any user-specified tags from the fet
 ### `buku-delete`
 
 ```
-:buku-delete [(index|N-M|URL) ...]
+:buku-delete [--python-invocation <path>] [(index|N-M|URL) ...]
 ```
 
 Delete a bookmark. With no arguments, deletes the bookmark for the current page.
@@ -161,9 +169,9 @@ Accepts buku indices, an `N-M` range, or exact URLs.
 ### `buku-update`
 
 ```
-:buku-update <index|URL> url <new-url>
-:buku-update <index|URL> title <new-title>
-:buku-update <index|URL> tags [+|-] <tag, ...>
+:buku-update [--python-invocation <path>] <index|URL> url <new-url>
+:buku-update [--python-invocation <path>] <index|URL> title <new-title>
+:buku-update [--python-invocation <path>] <index|URL> tags [+|-] <tag, ...>
 ```
 
 Update a specific field of a bookmark, identified by index or exact URL.
@@ -178,7 +186,7 @@ Update a specific field of a bookmark, identified by index or exact URL.
 ### `buku-browse`
 
 ```
-:buku-browse [-t]
+:buku-browse [-t] [--dmenu-invocation <cmd>]
 ```
 
 Open the picker populated with all bookmarks. Pass `-t` to open the first selection in
