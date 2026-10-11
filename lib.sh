@@ -27,3 +27,34 @@ qute_message() {
         echo "$msg"
     fi
 }
+
+require_jq() {
+    if ! command -v jq &>/dev/null; then
+        qute_error "jq is required but not installed"
+        exit 1
+    fi
+}
+
+# Parses a dmenu invocation string (respecting quotes, no other shell expansion)
+# into the DMENU_CMD array.
+parse_dmenu_cmd() {
+    DMENU_CMD=()
+    while IFS= read -r -d '' word; do
+        DMENU_CMD+=("$word")
+    done < <(xargs printf '%s\0' <<< "$1")
+}
+
+# Fetches all bookmarks as "title\turl" lines and presents them via DMENU_CMD.
+# Echoes selected lines, one per line. Exits 0 with no output if there are no
+# bookmarks or the user cancels the picker.
+pick_bookmarks() {
+    require_jq
+    local bookmarks
+    bookmarks=$(buku --nostdin --print -j 2>/dev/null | \
+        jq -r '.[] | "\(if .title != "" then .title else .uri end)\t\(.uri)"')
+    if [[ -z "$bookmarks" ]]; then
+        qute_error "No bookmarks found"
+        exit 0
+    fi
+    echo "$bookmarks" | "${DMENU_CMD[@]}" || exit 0
+}

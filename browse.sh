@@ -18,11 +18,7 @@ while [[ $# -gt 0 ]]; do
         -t) new_tab=true; shift ;;
         --dmenu-invocation)
             [[ $# -lt 2 ]] && usage
-            # split on whitespace, respecting quotes (but not performing any other shell expansion)
-            DMENU_CMD=()
-            while IFS= read -r -d '' word; do
-                DMENU_CMD+=("$word")
-            done < <(xargs printf '%s\0' <<< "$2")
+            parse_dmenu_cmd "$2"
             shift 2
             ;;
         -h|--help) usage ;;
@@ -31,23 +27,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-if ! command -v jq &>/dev/null; then
-    qute_error "jq is required but not installed"
-    exit 1
-fi
-
-# Fetch bookmarks as tab-separated "title\turl" lines.
-# Title comes first so dmenu searches by title naturally; URL follows for extraction.
-bookmarks=$(buku --nostdin --print -j 2>/dev/null | \
-    jq -r '.[] | "\(if .title != "" then .title else .uri end)\t\(.uri)"')
-
-if [[ -z "$bookmarks" ]]; then
-    qute_error "No bookmarks found"
-    exit 0
-fi
-
-# Present to dmenu; exit cleanly if the user cancels (empty selection or non-zero exit)
-selected=$(echo "$bookmarks" | "${DMENU_CMD[@]}") || exit 0
+selected=$(pick_bookmarks)
 [[ -z "$selected" ]] && exit 0
 
 # Process each selected line. First entry respects -t; all subsequent always open in a new tab.

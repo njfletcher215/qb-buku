@@ -112,7 +112,8 @@ DMENU_CMD=(fuzzel --dmenu -p "bookmark")
 DMENU_CMD=(dmenu -i -p "bookmark")
 ```
 
-Can be overridden per-invocation with `buku-browse`'s `--dmenu-invocation <cmd>` flag.
+Can be overridden per-invocation with `buku-browse`'s or `buku-delete`'s
+`--dmenu-invocation <cmd>` flag.
 
 ### `AUTO_FETCH_TAGS`
 
@@ -163,17 +164,20 @@ The '-' modifier does the same, but removes any user-specified tags from the fet
 ### `buku-delete`
 
 ```
-:buku-delete [--python-invocation <path>] [(index|N-M|URL) ...]
+:buku-delete [--python-invocation <path>] [-d|--use-dmenu] [--dmenu-invocation <cmd>] [(index|N-M|URL) ...]
 ```
 
 Delete a bookmark. With no arguments, deletes the bookmark for the current page.
-Accepts buku indices, an `N-M` range, or exact URLs.
+Accepts buku indices, an `N-M` range, or exact URLs. Pass `-d`/`--use-dmenu` instead of
+any arguments to pick the bookmark(s) to delete via the dmenu-style picker (see
+[Multi-select](#multi-select) under `buku-browse`).
 
 ```
 :buku-delete
 :buku-delete 42
 :buku-delete 10-20
 :buku-delete https://example.com
+:buku-delete -d
 ```
 
 ### `buku-update`

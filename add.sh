@@ -57,7 +57,7 @@ rm -f "$stderr_file"
 
 if [[ $buku_exit_code -ne 0 ]]; then
     qute_error "Unknown error while adding $url"
-elif [[ "$(echo "$buku_stderr" | strip_ansi)" =~ ^\[ERROR\] ]]; then
+elif [[ "$(strip_ansi "$buku_stderr")" =~ ^\[ERROR\] ]]; then
     qute_message "$url already exists"
 else
     qute_message "Added $url"

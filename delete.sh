@@ -8,34 +8,64 @@ here="$(dirname "$(realpath "$0")")"
 source "$here/lib.sh"
 
 usage() {
-    echo "Usage: $(basename "$0") [--python-invocation <path>] <index [index ...]|range|URL ...>" >&2
+    echo "Usage: $(basename "$0") [--python-invocation <path>] [-d|--use-dmenu] [--dmenu-invocation <cmd>] <index [index ...]|range|URL ...>" >&2
     echo "  --python-invocation <path>  override PYTHON for this invocation" >&2
+    echo "  -d, --use-dmenu             pick bookmarks to delete via the dmenu-style picker" >&2
+    echo "  --dmenu-invocation <cmd>    override DMENU_CMD for this invocation" >&2
     echo "  index                       one or more positive integers" >&2
     echo "  range                       a single range in the form N-M (e.g. 3-7)" >&2
     echo "  URL                         exact URL to look up and delete" >&2
     exit 1
 }
 
-while [[ "${1:-}" == --python-invocation ]]; do
-    [[ $# -lt 2 ]] && usage
-    PYTHON="$2"
-    shift 2
+use_dmenu=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --python-invocation)
+            [[ $# -lt 2 ]] && usage
+            PYTHON="$2"
+            shift 2
+            ;;
+        --dmenu-invocation)
+            [[ $# -lt 2 ]] && usage
+            parse_dmenu_cmd "$2"
+            shift 2
+            ;;
+        -d|--use-dmenu) use_dmenu=true; shift ;;
+        -h|--help) usage ;;
+        -*) usage ;;
+        *) break ;;
+    esac
 done
 
 if [[ $# -lt 1 ]]; then
-    [[ -z "${QUTE_URL:-}" ]] && usage
-    set -- "$QUTE_URL"
+    if [[ "$use_dmenu" == true ]]; then
+        selected=$(pick_bookmarks)
+        [[ -z "$selected" ]] && exit 0
+        urls=()
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            urls+=("$(printf '%s' "$line" | awk -F'\t' '{print $NF}')")
+        done <<< "$selected"
+        set -- "${urls[@]}"
+    elif [[ -n "${QUTE_URL:-}" ]]; then
+        set -- "$QUTE_URL"
+    else
+        usage
+    fi
 fi
 
 successes=()
 failures=()
 indices=()
 id_fetch_failures=()
+declare -A id_to_url=()
 
 for arg in "$@"; do
     if [[ "$arg" =~ ^https?:// ]] || [[ "$arg" =~ ^ftps?:// ]]; then
         if id=$("$PYTHON" "$here/get-id-by-url.py" "$arg" 2>&1); then
             indices+=("$id")
+            id_to_url["$id"]="$arg"
         else
             id_fetch_failures+=("'$arg'")
         fi
@@ -58,13 +88,15 @@ if [[ ${#indices[@]} -gt 0 ]]; then
         [[ -z "$line" ]] && continue
         buku_stdout+=("$line")
         if [[ "$line" =~ ^Index\ ([0-9]+)\ deleted ]]; then
-            successes+=("${BASH_REMATCH[1]}")
+            idx="${BASH_REMATCH[1]}"
+            successes+=("${id_to_url[$idx]:-$idx}")
         fi
     done < <(buku --nostdin --tacit --delete "${indices[@]}" 2>"$stderr_file" || buku_exit_code=$?)
     while IFS= read -r line; do
         buku_stderr+=("$line")
-        if [[ "$(echo "$line" | strip_ansi)" =~ \[ERROR\]\ No\ matching\ index\ ([0-9]+) ]]; then
-            failures+=("${BASH_REMATCH[1]}")
+        if [[ "$(strip_ansi "$line")" =~ \[ERROR\]\ No\ matching\ index\ ([0-9]+) ]]; then
+            idx="${BASH_REMATCH[1]}"
+            failures+=("${id_to_url[$idx]:-$idx}")
         fi
     done < "$stderr_file"
     rm -f "$stderr_file"
