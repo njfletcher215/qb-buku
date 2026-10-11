@@ -4,7 +4,6 @@ set -euo pipefail
 
 here="$(dirname "$(realpath "$0")")"
 source "$here/lib.sh"
-source "$here/config.sh"
 
 usage() {
     echo "Usage: $(basename "$0") [--auto-fetch-tags[=<true|false>]] URL [+|-] [tag, ...]" >&2
@@ -40,7 +39,7 @@ buku_args=("--add" "$url")
 if [[ $# -gt 0 ]]; then
     case "$1" in
         +|-) buku_args+=("$1"); shift ;;
-        *)   [[ "${AUTO_FETCH_TAGS:-false}" == true ]] && buku_args+=("+") ;;
+        *)   [[ "$AUTO_FETCH_TAGS" == true ]] && buku_args+=("+") ;;
     esac
 
     if [[ $# -gt 0 ]]; then

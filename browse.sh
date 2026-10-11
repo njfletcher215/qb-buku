@@ -4,7 +4,6 @@ set -euo pipefail
 
 here="$(dirname "$(realpath "$0")")"
 source "$here/lib.sh"
-source "$here/config.sh"
 
 usage() {
     echo "Usage: $(basename "$0") [-t] [--dmenu-invocation <cmd>]" >&2

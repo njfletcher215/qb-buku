@@ -6,7 +6,6 @@ set -euo pipefail
 
 here="$(dirname "$(realpath "$0")")"
 source "$here/lib.sh"
-source "$here/config.sh"
 
 usage() {
     echo "Usage: $(basename "$0") [--python-invocation <path>] <index [index ...]|range|URL ...>" >&2

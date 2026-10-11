@@ -41,8 +41,18 @@ echo "-> Installing buku Python module..."
 "$venv_path/bin/pip" install --quiet buku
 
 venv_python="$venv_path/bin/python3"
-echo "-> Setting PYTHON in config.sh..."
-sed -i "s|^PYTHON=.*|PYTHON=$venv_python|" "$script_dir/config.sh"
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/qb-buku"
+config_file="$config_dir/config.sh"
+if [[ -f "$config_file" ]]; then
+    echo "-> Config file already exists at '$config_file', leaving it untouched."
+    echo "   (If the venv path changed, you may need to update PYTHON there manually.)"
+else
+    echo "-> Creating config file at '$config_file'..."
+    mkdir -p "$config_dir"
+    cp "$script_dir/config.example.sh" "$config_file"
+    sed -i "s|^#PYTHON=.*|PYTHON=$venv_python|" "$config_file"
+fi
 
 echo
 

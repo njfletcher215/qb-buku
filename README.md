@@ -42,7 +42,15 @@ $ cd ~/qb-buku && ./install.sh
    ~/qb-buku/venv/bin/pip install buku
    ```
 
-3. Edit `config.sh` and set `PYTHON` to the venv interpreter:
+3. Copy the example config to your XDG config directory and set `PYTHON` to the venv
+   interpreter:
+
+   ```sh
+   mkdir -p ~/.config/qb-buku
+   cp config.example.sh ~/.config/qb-buku/config.sh
+   ```
+
+   Then uncomment and edit the `PYTHON` line in `~/.config/qb-buku/config.sh`:
 
    ```sh
    PYTHON=/home/you/.local/share/qb-buku/venv/bin/python3
@@ -84,7 +92,9 @@ $ cd ~/qb-buku && ./install.sh
 
 ## Configuration
 
-Edit `config.sh` in the repository directory.
+Edit `~/.config/qb-buku/config.sh` (or `$XDG_CONFIG_HOME/qb-buku/config.sh`). `install.sh`
+generates this file from `config.example.sh` on first install, leaving it untouched on
+subsequent runs.
 
 ### `DMENU_CMD`
 
@@ -112,7 +122,7 @@ effect when `+` or `-` is already given explicitly.
 
 ```bash
 AUTO_FETCH_TAGS=true   # fetch and merge tags automatically
-AUTO_FETCH_TAGS=false  # only use explicitly provided tags
+AUTO_FETCH_TAGS=false  # only use explicitly provided tags (default)
 ```
 
 Can be overridden per-invocation with `buku-add`'s `--auto-fetch-tags[=<true|false>]`
