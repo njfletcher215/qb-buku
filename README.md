@@ -129,6 +129,29 @@ AUTO_FETCH_TAGS=false  # only use explicitly provided tags (default)
 Can be overridden per-invocation with `buku-add`'s `--auto-fetch-tags[=<true|false>]`
 flag (bare `--auto-fetch-tags` means `true`).
 
+In interactive `buku-add` (see [Usage](#usage)), `AUTO_FETCH_TAGS=true` instead skips
+the tag-picker step entirely and uses the fetched tags as-is, showing them as a reminder
+when prompting for any extra tags. `AUTO_FETCH_TAGS=false` shows the picker so you can
+choose which fetched tags to include.
+
+### `DMENU_MSG_FLAG`
+
+Template for showing a reminder message in the picker used by interactive `buku-add`,
+with `{message}` as the placeholder for the message text. Different pickers expose this
+differently:
+
+```bash
+# rofi
+DMENU_MSG_FLAG="-mesg {message}"
+
+# fuzzel
+DMENU_MSG_FLAG="--mesg={message}"
+```
+
+If your dmenu-style picker does not implement a message field (`dmenu` itself does not), leave `DMENU_MSG_FLAG` empty. It is your responsibility to ensure that the `DMENU_MSG_FLAG` actually matches the expected format for the chosen `DMENU_CMD` -- mismatched values will cause errors.
+
+If neither `DMENU_CMD` nor `DMENU_MSG_FLAG` is set, `DMENU_MSG_FLAG` will default to `-mesg {message}` (the rofi format), so it will work with the default `DMENU_CMD` (which is rofi).
+
 ### `PYTHON`
 
 Path to the Python interpreter that has the `buku` module installed. Set automatically
@@ -146,19 +169,46 @@ Can be overridden per-invocation with `buku-delete`'s or `buku-update`'s
 ### `buku-add`
 
 ```
-:buku-add [--auto-fetch-tags[=<true|false>]] [+|-] [tag, ...]
+:buku-add [--auto-fetch-tags[=<true|false>]] [-q|--quiet] [URL] [--title <title>] [+|-] [tag, ...]
 ```
 
-Bookmark the current page. When invoked with no arguments, uses the current page's URL.
-When invoked with arguments, the first argument is the page's URL,
-and the remaining arguments are a comma-separated list of tags.
-The '+' modifier first fetches any tags from the page itself, then appends any user-specified tags.
-The '-' modifier does the same, but removes any user-specified tags from the fetched set instead.
+Bookmark the current page. Invoked with no arguments (or just `-q`/`--quiet`), this falls
+back to the current page's URL — see [Interactive `buku-add`](#interactive-buku-add)
+below. An explicit `URL` is required for anything else (`--title`, `+`/`-`, or tags),
+and always makes the invocation non-interactive: pass `--title <title>` to set the
+bookmark's title (otherwise buku fetches it from the page), and any remaining arguments
+are a comma-separated list of tags. The '+' modifier first fetches any tags from the
+page itself, then appends any user-specified tags. The '-' modifier does the same, but
+removes any user-specified tags from the fetched set instead.
+
+```
+:buku-add --quiet
+:buku-add https://example.com --title "My Title"
+:buku-add https://example.com + python,tools
+:buku-add https://example.com - python,tools
+:buku-add https://example.com --title "My Title" + python,tools
+```
+
+### Interactive `buku-add`
+
+When invoked with **no URL** (e.g. bound to a qutebrowser key — the usual case), and
+without `-q`/`--quiet`, `buku-add` fetches the page's title and tags itself, then walks
+you through them interactively via the configured picker (see
+[`DMENU_CMD`](#dmenu_cmd)):
+
+1. A prompt for the title, pre-filled with the page's own title — accept it or type your
+   own.
+2. If [`AUTO_FETCH_TAGS`](#auto_fetch_tags) is `false`, a multi-select prompt over the
+   page's fetched tags, letting you choose which ones to include. If it's `true`, this
+   step is skipped and all fetched tags are included automatically.
+3. A free-text prompt for any extra tags (comma-separated; unlike the CLI's positional tags, multi-word tags need no quoting here).
+   If the [`DMENU_MSG_FLAG`](#dmenu_msg_flag) is set, a message
+   reminding you which tags are already included, from step 2 or the auto-fetched set, will be displayed.
+
+Cancelling any of these prompts aborts the add.
 
 ```
 :buku-add
-:buku-add + python, tools
-:buku-add - python, tools
 ```
 
 ### `buku-delete`

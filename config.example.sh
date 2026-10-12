@@ -16,8 +16,19 @@
 # When true, automatically use '+' (append) mode when adding tags to a new bookmark,
 # meaning tags will be fetched from the site itself, before merging in any user-provided tags.
 # Has no effect if '+' or '-' is already passed explicitly.
+# In buku-add's interactive mode, `false` prompts for the inclusion of autofetched tags,
+# while `true` still appends them automatically
 #AUTO_FETCH_TAGS=false
 
 # The Python interpreter to use — must have the buku module installed.
 # install.sh sets this to the venv interpreter automatically.
 #PYTHON=/path/to/venv/bin/python3
+
+# Template for showing a reminder message in the dmenu picker used by interactive
+# buku-add, with '{message}' as the placeholder for the message text. Different pickers
+# expose this differently (rofi: "-mesg {message}", fuzzel: "--mesg={message}"); leave
+# this unset/empty to skip the message entirely (e.g. for plain dmenu, which has no
+# message area). It is your responsibility to keep this matched to whatever DMENU_CMD
+# you've configured — a mismatched pair will cause errors.
+# Defaults to "-mesg {message}" only when DMENU_CMD is also left at its default (rofi).
+#DMENU_MSG_FLAG="-mesg {message}"

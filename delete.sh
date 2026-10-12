@@ -38,10 +38,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+is_qb_mode=false
 if [[ $# -lt 1 ]]; then
     if [[ "$use_dmenu" == true ]]; then
         selected=$(pick_bookmarks)
-        [[ -z "$selected" ]] && exit 0
+        if [[ -z "$selected" ]]; then
+            qute_message "Cancelled"
+            exit 0
+        fi
         urls=()
         while IFS= read -r line; do
             [[ -z "$line" ]] && continue
@@ -50,6 +54,7 @@ if [[ $# -lt 1 ]]; then
         set -- "${urls[@]}"
     elif [[ -n "${QUTE_URL:-}" ]]; then
         set -- "$QUTE_URL"
+        is_qb_mode=true
     else
         usage
     fi

@@ -28,7 +28,10 @@ done
 
 
 selected=$(pick_bookmarks)
-[[ -z "$selected" ]] && exit 0
+if [[ -z "$selected" ]]; then
+    qute_message "Cancelled"
+    exit 0
+fi
 
 # Process each selected line. First entry respects -t; all subsequent always open in a new tab.
 first=true
