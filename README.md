@@ -102,8 +102,8 @@ The picker command, as a bash array. It must read lines from stdin and print sel
 lines to stdout, one per line.
 
 ```bash
-# rofi with multi-select (default)
-DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark")
+# rofi with multi-select, markup rendering, and 3-line rows (default)
+DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
 
 # fuzzel
 DMENU_CMD=(fuzzel --dmenu -p "bookmark")
@@ -114,6 +114,44 @@ DMENU_CMD=(dmenu -i -p "bookmark")
 
 Can be overridden per-invocation with `buku-browse`'s or `buku-delete`'s
 `--dmenu-invocation <cmd>` flag.
+
+You are responsible for ensuring that all required flags for your chosen dmenu-style picker are present. For example, if you inlucde pango markup in your `BOOKMARK_FORMAT`, you may have to pass a flag indicating the rows are styled (in `rofi`'s case, `-markup-rows`).
+
+### `ESCAPE_PANGO`
+
+Whether `pick_bookmarks()` Pango-escapes (`&`, `<`, `>` → `&amp;`, `&lt;`, `&gt;`) the
+title/url/tags values it substitutes into `BOOKMARK_FORMAT`, so arbitrary bookmark
+data can't break hand-written `<span>`/`<i>` markup.
+
+```bash
+ESCAPE_PANGO=true   # default -- needed if BOOKMARK_FORMAT uses Pango markup
+ESCAPE_PANGO=false  # for a plain-text BOOKMARK_FORMAT/picker
+```
+
+### `BOOKMARK_FORMAT`
+
+Template controlling how each bookmark is displayed in the picker used by
+`buku-browse`/`buku-delete`, with these placeholders:
+
+- `{title}` — bookmark title (falls back to the url if the bookmark has no title)
+- `{url}` — bookmark url
+- `{tags}` — bookmark tags, always `", "`-joined and trimmed, regardless of how buku
+  stores them internally
+- `{id}` — buku's bookmark index/id
+
+```bash
+# Styled, 3-line layout: title, then a dimmed url, then dimmed+small+italic tags
+BOOKMARK_FORMAT=$'{title}\n<span foreground="#888888">{url}</span>\n<span foreground="#888888" size="small"><i>{tags}</i></span>\x1f'
+
+# Plain layout
+BOOKMARK_FORMAT=$'{title}\t{url}\n'
+```
+
+If neither `DMENU_CMD` nor `BOOKMARK_FORMAT` is set, `BOOKMARK_FORMAT` defaults to the
+styled layout above (which is valid with `rofi -dmenu -markup-rows`); if `DMENU_CMD` is customized, it defaults to the plain layout
+instead, so if your dmenu-style picker implements pango markup, be sure to overwrite `BOOKMARK_FORMAT`.
+
+The `BOOKMARK_FORMAT` *must* end in its delimiter (by default, `\n`).
 
 ### `AUTO_FETCH_TAGS`
 

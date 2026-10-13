@@ -11,7 +11,7 @@
 # In order to use multi-select, you must provide a command that supports it.
 # rofi does so natively via the -multi-select flag,
 # and dmenu does so when patched with suckless's multi-select
-#DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark")
+#DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
 
 # When true, automatically use '+' (append) mode when adding tags to a new bookmark,
 # meaning tags will be fetched from the site itself, before merging in any user-provided tags.
@@ -32,3 +32,18 @@
 # you've configured — a mismatched pair will cause errors.
 # Defaults to "-mesg {message}" only when DMENU_CMD is also left at its default (rofi).
 #DMENU_MSG_FLAG="-mesg {message}"
+
+# Whether pick_bookmarks() Pango-escapes (&, <, > -> &amp;, &lt;, &gt;) the
+# title/url/tags values it substitutes into BOOKMARK_FORMAT, so arbitrary bookmark
+# data can't break hand-written <span>/<i> markup.
+#ESCAPE_PANGO=true
+
+# Template controlling how each bookmark is displayed in the dmenu-style picker used
+# by buku-browse/buku-delete, with these placeholders:
+#   {title}  bookmark title (falls back to the url if the bookmark has no title)
+#   {url}    bookmark url
+#   {tags}   bookmark tags, always ", "-joined and trimmed, regardless of how they're
+#            stored internally
+#   {id}     buku's bookmark index/id
+# The `BOOKMARK_FORMAT` *must* end in its delimiter (by default, `\n`).
+#BOOKMARK_FORMAT=$'{title}\n<span foreground="#888888">{url}</span>\n<span foreground="#888888" size="small"><i>{tags}</i></span>\x1f'
