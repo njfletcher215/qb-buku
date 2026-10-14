@@ -10,13 +10,6 @@ prompt() {
     printf '%s' "${answer:-$default}"
 }
 
-# Yes/no prompt; returns 0 for yes, 1 for no
-confirm() {
-    local msg="$1" default="${2:-n}" answer
-    read -r -p "$msg [${default}]: " answer
-    [[ "${answer:-$default}" =~ ^[Yy] ]]
-}
-
 # Expand a leading ~ in a path
 expand_path() { printf '%s' "${1/#\~/$HOME}"; }
 
@@ -92,42 +85,12 @@ qb_config=$(prompt "qutebrowser config.py path" "~/.config/qutebrowser/config.py
 qb_config="$(expand_path "$qb_config")"
 
 echo
-if confirm "Override qutebrowser's built-in bookmark bindings? (uses m/M/b/B instead of ,m/,M/,b/,B)" "n"; then
-    prefix=""
-else
-    prefix=","
-fi
+echo "Keybindings can be prefixed with a leader key (e.g. ',m' instead of 'm')."
+prefix=$(prompt "Keybinding prefix (enter 'none' to bind m/M/b/B directly)" ",")
+[[ "$prefix" == "none" ]] && prefix=""
 
-aliases_block=$(cat <<'PYEOF'
-
-# qb-buku aliases
-c.aliases.update({
-    'buku-add':    'spawn --userscript buku-add',
-    'buku-delete': 'spawn --userscript buku-delete',
-    'buku-update': 'spawn --userscript buku-update',
-    'buku-browse': 'spawn --userscript buku-browse',
-})
-PYEOF
-)
-
-bindings_block=$(cat <<PYEOF
-
-# qb-buku keybindings
-config.bind('${prefix}m', 'spawn --userscript buku-add')
-config.bind('${prefix}M', 'spawn --userscript buku-delete')
-config.bind('${prefix}b', 'spawn --userscript buku-browse')
-config.bind('${prefix}B', 'spawn --userscript buku-browse -t')
-PYEOF
-)
-
-if [[ -f "$qb_config" ]]; then
-    echo "-> Appending to '$qb_config'..."
-    printf '%s\n%s\n' "$aliases_block" "$bindings_block" >> "$qb_config"
-else
-    echo "-> Creating '$qb_config'..."
-    mkdir -p "$(dirname "$qb_config")"
-    { printf 'config.load_autoconfig()\n'; printf '%s\n%s\n' "$aliases_block" "$bindings_block"; } > "$qb_config"
-fi
+echo
+python3 "$script_dir/install_configure.py" "$qb_config" "$prefix"
 
 echo
 echo "Done! Restart qutebrowser for the changes to take effect."
