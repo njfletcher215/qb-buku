@@ -8,7 +8,7 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 |---|---|
 | `add.sh` | Bookmark the current page (or a given URL) |
 | `delete.sh` | Delete one or more bookmarks by index, range, or URL |
-| `update.sh` | Update a bookmark's URL, title, or tags |
+| `update.sh` | Update a bookmark's URL, title, or tags (or interactively via a dmenu picker) |
 | `browse.sh` | Browse and open bookmarks via a dmenu-style picker |
 
 ## Dependencies
@@ -102,8 +102,8 @@ The picker command, as a bash array. It must read lines from stdin and print sel
 lines to stdout, one per line.
 
 ```bash
-# rofi with multi-select, markup rendering, and 3-line rows (default)
-DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
+# rofi with markup rendering and 3-line rows (default)
+DMENU_CMD=(rofi -dmenu -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
 
 # fuzzel
 DMENU_CMD=(fuzzel --dmenu -p "bookmark")
@@ -112,8 +112,8 @@ DMENU_CMD=(fuzzel --dmenu -p "bookmark")
 DMENU_CMD=(dmenu -i -p "bookmark")
 ```
 
-Can be overridden per-invocation with `buku-browse`'s or `buku-delete`'s
-`--dmenu-invocation <cmd>` flag.
+Can be overridden per-invocation with `buku-browse`'s, `buku-delete`'s, or
+`buku-update`'s `--dmenu-invocation <cmd>` flag.
 
 You are responsible for ensuring that all required flags for your chosen dmenu-style picker are present. For example, if you inlucde pango markup in your `BOOKMARK_FORMAT`, you may have to pass a flag indicating the rows are styled (in `rofi`'s case, `-markup-rows`).
 
@@ -190,6 +190,32 @@ If your dmenu-style picker does not implement a message field (`dmenu` itself do
 
 If neither `DMENU_CMD` nor `DMENU_MSG_FLAG` is set, `DMENU_MSG_FLAG` will default to `-mesg {message}` (the rofi format), so it will work with the default `DMENU_CMD` (which is rofi).
 
+### `DMENU_MULTI_FLAG`
+
+Flag(s) passed to `DMENU_CMD` to enable multi-select, used only where selecting multiple
+entries actually does something useful: `buku-browse -t`'s bookmark picker,
+`buku-delete -d`'s bookmark picker, and the tag-selection steps of interactive
+`buku-add` and `buku-update -d`. Different pickers expose this differently:
+
+```bash
+# rofi
+DMENU_MULTI_FLAG="-multi-select"
+```
+
+[rofi](https://github.com/davatorium/rofi) supports multi-select natively via the
+`-multi-select` flag. [dmenu](https://tools.suckless.org/dmenu/) supports it when built
+with the [multi-select patch](https://tools.suckless.org/dmenu/patches/multi-select/).
+
+If your dmenu-style picker does not support multi-select (plain `dmenu` does not unless
+patched), leave `DMENU_MULTI_FLAG` empty — anywhere multi-select would otherwise be used,
+it's skipped instead (see each command's docs below for exactly what that means there).
+It is your responsibility to ensure that `DMENU_MULTI_FLAG` actually matches the expected
+flag for the chosen `DMENU_CMD` -- a mismatched value will cause errors.
+
+If neither `DMENU_CMD` nor `DMENU_MULTI_FLAG` is set, `DMENU_MULTI_FLAG` will default to
+`-multi-select` (the rofi format), so it will work with the default `DMENU_CMD` (which is
+rofi).
+
 ### `PYTHON`
 
 Path to the Python interpreter that has the `buku` module installed. Set automatically
@@ -255,9 +281,11 @@ you through them interactively via the configured picker (see
 
 1. A prompt for the title, pre-filled with the page's own title — accept it or type your
    own.
-2. If [`AUTO_FETCH_TAGS`](#auto_fetch_tags) is `false`, a multi-select prompt over the
-   page's fetched tags, letting you choose which ones to include. If it's `true`, this
-   step is skipped and all fetched tags are included automatically.
+2. If [`AUTO_FETCH_TAGS`](#auto_fetch_tags) is `false` and
+   [`DMENU_MULTI_FLAG`](#dmenu_multi_flag) is set, a multi-select prompt over the page's
+   fetched tags, letting you choose which ones to include. If `AUTO_FETCH_TAGS` is `true`,
+   or `DMENU_MULTI_FLAG` is empty (no way to pick a subset), this step is skipped and all
+   fetched tags are included automatically.
 3. A free-text prompt for any extra tags (comma-separated; unlike the CLI's positional tags, multi-word tags need no quoting here).
    If the [`DMENU_MSG_FLAG`](#dmenu_msg_flag) is set, a message
    reminding you which tags are already included, from step 2 or the auto-fetched set, will be displayed.
@@ -274,15 +302,18 @@ Cancelling any of these prompts aborts the add.
 :buku-delete [--python-invocation <path>] [-d|--use-dmenu] [--dmenu-invocation <cmd>] [(index|N-M|URL) ...]
 ```
 
-Delete a bookmark. With no arguments, deletes the bookmark for the current page.
-Accepts buku indices, an `N-M` range, or exact URLs. Pass `-d`/`--use-dmenu` instead of
-any arguments to pick the bookmark(s) to delete via the dmenu-style picker (see
-[Multi-select](#multi-select) under `buku-browse`).
+Delete one or more bookmarks. With no arguments, deletes the bookmark for the current
+page. Accepts any mix of buku indices, `N-M` ranges, and exact URLs — multiple of each
+can be combined in one call, and ranges are expanded locally so several ranges can be
+passed together. Pass `-d`/`--use-dmenu` instead of any arguments to pick the
+bookmark(s) to delete via the dmenu-style picker; with
+[`DMENU_MULTI_FLAG`](#dmenu_multi_flag) set, you can select multiple bookmarks at once.
 
 ```
 :buku-delete
 :buku-delete 42
 :buku-delete 10-20
+:buku-delete 10-20 42 60-65
 :buku-delete https://example.com
 :buku-delete -d
 ```
@@ -293,6 +324,7 @@ any arguments to pick the bookmark(s) to delete via the dmenu-style picker (see
 :buku-update [--python-invocation <path>] <index|URL> url <new-url>
 :buku-update [--python-invocation <path>] <index|URL> title <new-title>
 :buku-update [--python-invocation <path>] <index|URL> tags [+|-] <tag, ...>
+:buku-update [--python-invocation <path>] -d|--use-dmenu [--dmenu-invocation <cmd>] [<index|URL>]
 ```
 
 Update a specific field of a bookmark, identified by index or exact URL.
@@ -304,6 +336,32 @@ Update a specific field of a bookmark, identified by index or exact URL.
 :buku-update https://example.com tags - oldtag
 ```
 
+#### Interactive `buku-update`
+
+Pass `-d`/`--use-dmenu` to update a bookmark's title and tags together via the
+configured picker, similar to interactive `buku-add`:
+
+1. If `<index|URL>` isn't given, a single-select prompt over all bookmarks (see
+   `buku-browse`) picks which one to update.
+2. A prompt for the title, pre-filled with the bookmark's current title — accept it or
+   type your own.
+3. If [`DMENU_MULTI_FLAG`](#dmenu_multi_flag) is set, a multi-select prompt over the
+   bookmark's current tags, letting you choose which to keep. If it's empty (no way to
+   pick a subset), this step is skipped and all current tags are kept.
+4. If `DMENU_MULTI_FLAG` is set, a multi-select prompt over every tag already used
+   elsewhere in your bookmarks (excluding ones already kept), letting you pick more to
+   add. Skipped if `DMENU_MULTI_FLAG` is empty.
+5. A free-text prompt for any brand new tags (comma-separated). If
+   [`DMENU_MSG_FLAG`](#dmenu_msg_flag) is set, a message reminding you which tags are
+   already selected (from steps 3 and 4) will be displayed.
+
+Cancelling any of these prompts aborts the update.
+
+```
+:buku-update -d
+:buku-update -d 7
+```
+
 ### `buku-browse`
 
 ```
@@ -311,7 +369,9 @@ Update a specific field of a bookmark, identified by index or exact URL.
 ```
 
 Open the picker populated with all bookmarks. Pass `-t` to open the first selection in
-a new tab (all subsequent selections always open in new tabs regardless).
+a new tab (all subsequent selections always open in new tabs regardless); this also
+enables multi-select (see below) in the picker, since without `-t` only one result
+could ever be used anyway.
 
 When run directly (outside of qutebrowser), the selected bookmark is always
 opened in a new tab, regardless of whether `-t` was passed, via `qutebrowser` launched
@@ -325,11 +385,6 @@ you've configured.
 
 #### Multi-select
 
-When using a picker that supports multi-select, you can choose multiple bookmarks at
-once and they will all be opened. [rofi](https://github.com/davatorium/rofi) supports
-this natively via the `-multi-select` flag. [dmenu](https://tools.suckless.org/dmenu/)
-supports it when built with the
-[multi-select patch](https://tools.suckless.org/dmenu/patches/multi-select/).
-
-The first selected bookmark respects the `-t` flag; all subsequent ones always open in
-new tabs.
+With [`DMENU_MULTI_FLAG`](#dmenu_multi_flag) set, `buku-browse -t` lets you choose
+multiple bookmarks at once and they will all be opened. The first selected bookmark
+respects the `-t` flag; all subsequent ones always open in new tabs.

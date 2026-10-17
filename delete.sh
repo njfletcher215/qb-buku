@@ -13,7 +13,7 @@ usage() {
     echo "  -d, --use-dmenu             pick bookmarks to delete via the dmenu-style picker" >&2
     echo "  --dmenu-invocation <cmd>    override DMENU_CMD for this invocation" >&2
     echo "  index                       one or more positive integers" >&2
-    echo "  range                       a single range in the form N-M (e.g. 3-7)" >&2
+    echo "  range                       one or more ranges in the form N-M (e.g. 3-7)" >&2
     echo "  URL                         exact URL to look up and delete" >&2
     exit 1
 }
@@ -75,8 +75,15 @@ for arg in "$@"; do
         else
             id_fetch_failures+=("'$arg'")
         fi
-    elif [[ "$arg" =~ ^[0-9]+-[0-9]+$ ]]; then
-        indices+=("$arg")
+    elif [[ "$arg" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+        range_start="${BASH_REMATCH[1]}"
+        range_end="${BASH_REMATCH[2]}"
+        if (( range_start > range_end )); then
+            qute_error "invalid range '${arg}' — start must not exceed end"; exit 1
+        fi
+        for ((range_n = range_start; range_n <= range_end; range_n++)); do
+            indices+=("$range_n")
+        done
     elif [[ "$arg" =~ ^[0-9]+$ ]]; then
         indices+=("$arg")
     else

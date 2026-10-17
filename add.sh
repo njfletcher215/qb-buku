@@ -23,6 +23,7 @@ while [[ $# -gt 0 ]]; do
         --auto-fetch-tags) AUTO_FETCH_TAGS=true; shift ;;
         --auto-fetch-tags=*) AUTO_FETCH_TAGS="${1#--auto-fetch-tags=}"; shift ;;
         -q|--quiet) quiet=true; shift ;;
+        -h|--help) usage ;;
         *) break ;;
     esac
 done
