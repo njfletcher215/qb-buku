@@ -294,6 +294,9 @@ Update a specific field of a bookmark, identified by index or exact URL.
 Open the picker populated with all bookmarks. Pass `-t` to open the first selection in
 a new tab (all subsequent selections always open in new tabs regardless).
 
+When run directly (outside of qutebrowser), the selected bookmark is always
+opened in a new tab, regardless of whether `-t` was passed.
+
 ```
 :buku-browse
 :buku-browse -t

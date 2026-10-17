@@ -28,10 +28,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 is_qb_mode=false
+[[ -n "${QUTE_FIFO:-}" ]] && is_qb_mode=true
+
 if [[ $# -lt 1 ]]; then
     [[ -z "${QUTE_URL:-}" ]] && usage
     set -- "$QUTE_URL"
-    is_qb_mode=true
 fi
 
 url="$1"

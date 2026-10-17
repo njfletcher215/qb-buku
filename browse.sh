@@ -27,32 +27,44 @@ while [[ $# -gt 0 ]]; do
 done
 
 
+if [[ -z "${QUTE_FIFO:-}" ]]; then
+    if ! command -v qutebrowser &>/dev/null; then
+        qute_error "qutebrowser is required but not installed"
+        exit 1
+    fi
+fi
+
 selected=$(pick_bookmarks)
 if [[ -z "$selected" ]]; then
     qute_message "Cancelled"
     exit 0
 fi
 
-# Process each selected line. First entry respects -t; all subsequent always open in a new tab.
+# Process each selected line. Inside qutebrowser, the first entry respects -t and all
+# subsequent ones always open in a new tab. Outside qutebrowser, there's no "current
+# tab" to reuse, so every entry opens in a new tab regardless of -t.
 first=true
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     url=$(printf '%s' "$line" | awk -F'\t' '{print $NF}')
 
-    if [[ "$first" == true ]]; then
-        first=false
-        if [[ "$new_tab" == true ]]; then
-            cmd="open -t $url"
-        else
-            cmd="open $url"
-        fi
-    else
-        cmd="open -t $url"
-    fi
-
     if [[ -n "${QUTE_FIFO:-}" ]]; then
+        if [[ "$first" == true ]]; then
+            if [[ "$new_tab" == true ]]; then
+                cmd="open -t $url"
+            else
+                cmd="open $url"
+            fi
+        else
+            cmd="open -t $url"
+        fi
         echo "$cmd" >> "$QUTE_FIFO"
     else
-        echo "$url"
+        qutebrowser --target tab "$url" &
+        disown
+        # Give a freshly-launched instance's IPC socket a moment to come up
+        # before firing off any further selections at it.
+        [[ "$first" == true ]] && sleep 0.3
     fi
+    first=false
 done <<< "$selected"

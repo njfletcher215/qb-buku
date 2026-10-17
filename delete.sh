@@ -39,6 +39,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 is_qb_mode=false
+[[ -n "${QUTE_FIFO:-}" ]] && is_qb_mode=true
+
 if [[ $# -lt 1 ]]; then
     if [[ "$use_dmenu" == true ]]; then
         selected=$(pick_bookmarks)
@@ -54,7 +56,6 @@ if [[ $# -lt 1 ]]; then
         set -- "${urls[@]}"
     elif [[ -n "${QUTE_URL:-}" ]]; then
         set -- "$QUTE_URL"
-        is_qb_mode=true
     else
         usage
     fi
