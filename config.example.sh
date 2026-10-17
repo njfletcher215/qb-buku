@@ -47,3 +47,11 @@
 #   {id}     buku's bookmark index/id
 # The `BOOKMARK_FORMAT` *must* end in its delimiter (by default, `\n`).
 #BOOKMARK_FORMAT=$'{title}\n<span foreground="#888888">{url}</span>\n<span foreground="#888888" size="small"><i>{tags}</i></span>\x1f'
+
+# Extra flags passed to qutebrowser when buku-browse launches it directly
+# (i.e. when run outside of a running qutebrowser instance).
+#QUTEBROWSER_FLAGS=()
+
+# Extra environment variables (NAME=value) set for qutebrowser when buku-browse
+# launches it directly (i.e. when run outside of a running qutebrowser instance).
+#QUTEBROWSER_ENV=()

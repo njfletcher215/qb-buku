@@ -9,6 +9,8 @@ PYTHON=python3
 DMENU_MSG_FLAG=""
 ESCAPE_PANGO=true
 BOOKMARK_FORMAT=""
+QUTEBROWSER_FLAGS=()
+QUTEBROWSER_ENV=()
 
 qb_buku_config="${XDG_CONFIG_HOME:-$HOME/.config}/qb-buku/config.sh"
 [[ -f "$qb_buku_config" ]] && source "$qb_buku_config"

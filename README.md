@@ -202,6 +202,25 @@ PYTHON=/home/you/.local/share/qb-buku/venv/bin/python3
 Can be overridden per-invocation with `buku-delete`'s or `buku-update`'s
 `--python-invocation <path>` flag.
 
+### `QUTEBROWSER_FLAGS`
+
+Extra flags passed to `qutebrowser` when `buku-browse` launches it directly (i.e. when
+run outside of a running qutebrowser instance). Empty by default.
+
+```bash
+QUTEBROWSER_FLAGS=(--backend webengine)
+```
+
+### `QUTEBROWSER_ENV`
+
+Extra environment variables set for `qutebrowser` when `buku-browse` launches it
+directly (i.e. when run outside of a running qutebrowser instance). Empty by default.
+
+```bash
+# Always use the Fusion Qt style, regardless of system settings
+QUTEBROWSER_ENV=(QT_STYLE_OVERRIDE=Fusion)
+```
+
 ## Usage
 
 ### `buku-add`
@@ -295,7 +314,9 @@ Open the picker populated with all bookmarks. Pass `-t` to open the first select
 a new tab (all subsequent selections always open in new tabs regardless).
 
 When run directly (outside of qutebrowser), the selected bookmark is always
-opened in a new tab, regardless of whether `-t` was passed.
+opened in a new tab, regardless of whether `-t` was passed, via `qutebrowser` launched
+with any [`QUTEBROWSER_FLAGS`](#qutebrowser_flags)/[`QUTEBROWSER_ENV`](#qutebrowser_env)
+you've configured.
 
 ```
 :buku-browse

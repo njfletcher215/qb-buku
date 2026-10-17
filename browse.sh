@@ -60,7 +60,7 @@ while IFS= read -r line; do
         fi
         echo "$cmd" >> "$QUTE_FIFO"
     else
-        qutebrowser --target tab "$url" &
+        env "${QUTEBROWSER_ENV[@]}" qutebrowser --target tab "${QUTEBROWSER_FLAGS[@]}" "$url" &
         disown
         # Give a freshly-launched instance's IPC socket a moment to come up
         # before firing off any further selections at it.
