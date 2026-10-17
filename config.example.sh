@@ -8,10 +8,7 @@
 
 # Command (and arguments) used to present a dmenu-style picker.
 # Must read entries from stdin and print selected entries to stdout, one per line.
-# In order to use multi-select, you must provide a command that supports it.
-# rofi does so natively via the -multi-select flag,
-# and dmenu does so when patched with suckless's multi-select
-#DMENU_CMD=(rofi -dmenu -multi-select -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
+#DMENU_CMD=(rofi -dmenu -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
 
 # When true, automatically use '+' (append) mode when adding tags to a new bookmark,
 # meaning tags will be fetched from the site itself, before merging in any user-provided tags.
@@ -32,6 +29,12 @@
 # you've configured — a mismatched pair will cause errors.
 # Defaults to "-mesg {message}" only when DMENU_CMD is also left at its default (rofi).
 #DMENU_MSG_FLAG="-mesg {message}"
+
+# Flag passed to DMENU_CMD to enable multi-select
+# Like `DMENU_MSG_FLAG`, It is your responsibility to keep this matched to
+# whatever `DMENU_CMD` you've configured — a mismatched pair will cause errors.
+# Defaults to "-multi-select" only when DMENU_CMD is also left at its default (rofi).
+#DMENU_MULTI_FLAG="-multi-select"
 
 # Whether pick_bookmarks() Pango-escapes (&, <, > -> &amp;, &lt;, &gt;) the
 # title/url/tags values it substitutes into BOOKMARK_FORMAT, so arbitrary bookmark

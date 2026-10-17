@@ -2,11 +2,12 @@
 # Shared helpers for qutebrowser userscripts
 
 # Config defaults, overridden by $XDG_CONFIG_HOME/qb-buku/config.sh (or ~/.config/qb-buku/config.sh) if present
-_default_dmenu_cmd=(rofi -dmenu -multi-select -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
+_default_dmenu_cmd=(rofi -dmenu -i -p "bookmark" -markup-rows -sep $'\x1f' -eh 3)
 DMENU_CMD=("${_default_dmenu_cmd[@]}")
 AUTO_FETCH_TAGS=false
 PYTHON=python3
 DMENU_MSG_FLAG=""
+DMENU_MULTI_FLAG=""
 ESCAPE_PANGO=true
 BOOKMARK_FORMAT=""
 QUTEBROWSER_FLAGS=()
@@ -30,6 +31,14 @@ unset _i _default_dmenu_cmd
 # which has no message support) should not silently inherit a rofi-specific flag.
 if [[ -z "$DMENU_MSG_FLAG" && "$_dmenu_cmd_is_default" == true ]]; then
     DMENU_MSG_FLAG="-mesg {message}"
+fi
+
+# DMENU_MULTI_FLAG's default (-multi-select, rofi's syntax) only applies when
+# DMENU_CMD is also untouched -- a user-provided DMENU_CMD (e.g. plain dmenu,
+# which has no multi-select support unless patched) should not silently inherit
+# a rofi-specific flag.
+if [[ -z "$DMENU_MULTI_FLAG" && "$_dmenu_cmd_is_default" == true ]]; then
+    DMENU_MULTI_FLAG="-multi-select"
 fi
 
 # BOOKMARK_FORMAT's styled default (Pango markup) only applies when DMENU_CMD is
@@ -98,6 +107,13 @@ dmenu_msg_flag_args() {
     done < <(split_words "$DMENU_MSG_FLAG")
 }
 
+# Builds the dmenu multi-select-flag arguments by splitting DMENU_MULTI_FLAG into
+# words. Does nothing if DMENU_MULTI_FLAG is empty.
+dmenu_multi_flag_args() {
+    [[ -z "${DMENU_MULTI_FLAG:-}" ]] && return 0
+    split_words "$DMENU_MULTI_FLAG"
+}
+
 # Splits TAGSTRING on ',' and
 # trims leading/trailing whitespace from each piece
 split_tags() {
@@ -131,8 +147,12 @@ _bookmark_format_bindings='
 '
 
 # Fetches all bookmarks and presents them via DMENU_CMD.
+# Pass "multi" to additionally apply DMENU_MULTI_FLAG, enabling multi-select.
 # Exits 0 with no output if there are no bookmarks or the user cancels the picker.
 pick_bookmarks() {
+    local multi=false
+    [[ "${1:-}" == multi ]] && multi=true
+
     require_jq
     local json
     json=$(buku --nostdin --print -j 2>/dev/null)
@@ -181,8 +201,13 @@ pick_bookmarks() {
     local joined
     joined=$(printf '%s' "${entries[@]}")
 
+    local -a multi_args=()
+    if [[ "$multi" == true ]]; then
+        while IFS= read -r -d '' word; do multi_args+=("$word"); done < <(dmenu_multi_flag_args)
+    fi
+
     local result
-    result=$(printf '%s' "$joined" | "${DMENU_CMD[@]}") || exit 0
+    result=$(printf '%s' "$joined" | "${DMENU_CMD[@]}" "${multi_args[@]}") || exit 0
     [[ -z "$result" ]] && return
 
     local -A entry_to_index=()

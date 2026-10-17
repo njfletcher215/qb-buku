@@ -7,7 +7,8 @@ source "$here/lib.sh"
 
 usage() {
     echo "Usage: $(basename "$0") [-t] [--dmenu-invocation <cmd>]" >&2
-    echo "  -t                        open first result in a new tab (subsequent results always open in new tabs)" >&2
+    echo "  -t                        open first result in a new tab (subsequent results always open in new tabs);" >&2
+    echo "                            also enables multi-select in the picker, if DMENU_MULTI_FLAG is set" >&2
     echo "  --dmenu-invocation <cmd>  override DMENU_CMD for this invocation" >&2
     exit 1
 }
@@ -34,7 +35,11 @@ if [[ -z "${QUTE_FIFO:-}" ]]; then
     fi
 fi
 
-selected=$(pick_bookmarks)
+if [[ "$new_tab" == true ]]; then
+    selected=$(pick_bookmarks multi)
+else
+    selected=$(pick_bookmarks)
+fi
 if [[ -z "$selected" ]]; then
     qute_message "Cancelled"
     exit 0
