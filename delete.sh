@@ -43,7 +43,7 @@ is_qb_mode=false
 
 if [[ $# -lt 1 ]]; then
     if [[ "$use_dmenu" == true ]]; then
-        selected=$(pick_bookmarks)
+        selected=$(pick_bookmarks multi)
         if [[ -z "$selected" ]]; then
             qute_message "Cancelled"
             exit 0
