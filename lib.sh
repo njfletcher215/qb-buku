@@ -296,7 +296,9 @@ pick_bookmarks() {
     local escape=false
     [[ "$ESCAPE_PANGO" == true ]] && escape=true
 
+    # Avoid colliding with a dmenu separator the user may have chosen
     local field_sep=$'\x1e'
+    [[ "${DMENU_CMD[*]}" == *$'\x1e'* ]] && field_sep=$'\x1f'
 
     local -a entries=() plain_titles=() plain_urls=()
     while IFS= read -r -d "$field_sep" rendered && IFS= read -r -d "$field_sep" title && IFS= read -r -d "$field_sep" url; do
