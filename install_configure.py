@@ -11,7 +11,7 @@ BOLD_YELLOW = "\033[1;33m"
 RESET = "\033[0m"
 DIM = "\033[2m"
 
-ALIAS_ORDER = ["buku-add", "buku-add-all", "buku-delete", "buku-update", "buku-browse"]
+ALIAS_ORDER = ["buku-add", "buku-add-all", "buku-delete", "buku-update", "buku-browse", "buku-retag"]
 ALIAS_DEFAULTS = {name: f"spawn --userscript {name}" for name in ALIAS_ORDER}
 
 ENTRY_RE = re.compile(r"^(\s*)['\"]([\w-]+)['\"]\s*:\s*['\"]([^'\"]*)['\"]\s*,?\s*$")

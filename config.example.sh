@@ -57,7 +57,8 @@
 # When it runs:
 #   Once for each bookmark *newly* added by buku-add or buku-add-all, after buku has
 #   stored it -- so after any auto-fetched and user-supplied tags. It is not run for
-#   bookmarks that already existed, for failed adds, or by buku-update.
+#   bookmarks that already existed, for failed adds, or by buku-update. To apply
+#   changed rules to your existing bookmarks, run buku-retag.
 #
 # What it can see:
 #   BOOKMARK_URL     the stored URL

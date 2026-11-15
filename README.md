@@ -11,11 +11,12 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 | `delete.sh` | Delete one or more bookmarks by index, range, or URL |
 | `update.sh` | Update a bookmark's URL, title, or tags (or interactively via a dmenu picker) |
 | `browse.sh` | Browse and open bookmarks via a dmenu-style picker |
+| `retag.sh` | Apply [`add_additional_tags`](#add_additional_tags) to existing bookmarks |
 
 ## Dependencies
 
 - [buku](https://github.com/jarun/buku) — installed system-wide via your package manager
-- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, and `add-all.sh`, and by `add.sh` when [`add_additional_tags`](#add_additional_tags) is defined
+- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, `add-all.sh`, and `retag.sh`, and by `add.sh` when [`add_additional_tags`](#add_additional_tags) is defined
 - Python 3 with the `buku` module importable — used by `delete.sh` and `update.sh` (and by `add.sh`/`add-all.sh` when [`add_additional_tags`](#add_additional_tags) is defined) to resolve URLs to bookmark IDs; `install.sh` sets up a venv for this automatically
 - [yq](https://github.com/kislyuk/yq) — used by `add-all.sh` to read qutebrowser's session files
 - A dmenu-compatible picker — see [Configuration](#configuration)
@@ -70,6 +71,7 @@ $ cd ~/qb-buku && ./install.sh
    ln -s "$src/delete.sh"  "$userscripts/buku-delete"
    ln -s "$src/update.sh"  "$userscripts/buku-update"
    ln -s "$src/browse.sh"  "$userscripts/buku-browse"
+   ln -s "$src/retag.sh"   "$userscripts/buku-retag"
    ```
 
 5. Add the following to your `~/.config/qutebrowser/config.py`:
@@ -82,6 +84,7 @@ $ cd ~/qb-buku && ./install.sh
        'buku-delete':  'spawn --userscript buku-delete',
        'buku-update':  'spawn --userscript buku-update',
        'buku-browse':  'spawn --userscript buku-browse',
+       'buku-retag':   'spawn --userscript buku-retag',
    })
 
    # qb-buku keybindings
@@ -251,6 +254,9 @@ add_additional_tags() {
 Once for each new bookmark added (via `buku-add` or `buku-add-all`).
 It runs after all other tag selection, so it sees
 [auto-fetched](#auto_fetch_tags) and the user-supplied tags.
+
+After changing your rules, run [`buku-retag`](#buku-retag) to apply them to your
+existing bookmarks too.
 
 #### Variables
 
@@ -517,3 +523,28 @@ you've configured.
 With [`DMENU_MULTI_FLAG`](#dmenu_multi_flag) set, `buku-browse -t` lets you choose
 multiple bookmarks at once and they will all be opened. The first selected bookmark
 respects the `-t` flag; all subsequent ones always open in new tabs.
+
+### `buku-retag`
+
+```
+:buku-retag [-n|--dry-run] [id|URL ...]
+```
+
+Apply your current [`add_additional_tags`](#add_additional_tags) rules to bookmarks you
+already have -- e.g. after adding or changing a rule. With no arguments, every bookmark
+is retagged; otherwise only the given bookmark indices and/or exact URLs (any that don't
+match a bookmark are warned about and skipped).
+
+The hook runs once per bookmark, exactly as it does when a bookmark is added, and
+`buku-retag` only ever **adds** tags: removing a rule won't remove the tags it already
+added. Each bookmark that gets new tags is listed, followed by a summary.
+
+`-n`/`--dry-run` lists the tags that would be added without changing anything.
+
+Errors out if `add_additional_tags` isn't defined.
+
+```
+:buku-retag
+:buku-retag --dry-run
+$ retag.sh 12 42 https://example.com
+```

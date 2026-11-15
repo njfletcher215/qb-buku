@@ -194,24 +194,11 @@ domain_is() {
     return 1
 }
 
-# Runs the add_additional_tags hook, if the config defines one, against the stored
-# bookmark for URL, then appends any tags it added.
-apply_additional_tags() {
-    declare -F add_additional_tags &>/dev/null || return 0
-
-    local url="$1" id bookmark_json title tags_str
-    require_jq
-    if ! id=$("$PYTHON" "$here/get-id-by-url.py" "$url" 2>/dev/null); then
-        echo "Warning: couldn't look up $url to apply add_additional_tags" >&2
-        return 0
-    fi
-    bookmark_json=$(buku --nostdin --print "$id" -j 2>/dev/null) || bookmark_json=""
-    if [[ -z "$bookmark_json" ]]; then
-        echo "Warning: couldn't read bookmark $id to apply add_additional_tags" >&2
-        return 0
-    fi
-    title=$(jq -r '.title // ""' <<< "$bookmark_json")
-    tags_str=$(jq -r '.tags // ""' <<< "$bookmark_json")
+# Runs the add_additional_tags hook against a bookmark's URL, TITLE and TAGS_STR
+# (as stored by buku), without touching the DB. Prints the tags it added,
+# ", "-joined, or nothing if it added none.
+_run_additional_tags_hook() {
+    local url="$1" title="$2" tags_str="$3"
 
     local -a original_tags=() final_tags=() new_tags=()
     local tag
@@ -240,7 +227,31 @@ apply_additional_tags() {
 
     local new_str
     printf -v new_str '%s, ' "${new_tags[@]}"
-    new_str="${new_str%, }"
+    printf '%s\n' "${new_str%, }"
+}
+
+# Runs the add_additional_tags hook, if the config defines one, against the stored
+# bookmark for URL, then appends any tags it added.
+apply_additional_tags() {
+    declare -F add_additional_tags &>/dev/null || return 0
+
+    local url="$1" id bookmark_json title tags_str new_str
+    require_jq
+    if ! id=$("$PYTHON" "$here/get-id-by-url.py" "$url" 2>/dev/null); then
+        echo "Warning: couldn't look up $url to apply add_additional_tags" >&2
+        return 0
+    fi
+    bookmark_json=$(buku --nostdin --print "$id" -j 2>/dev/null) || bookmark_json=""
+    if [[ -z "$bookmark_json" ]]; then
+        echo "Warning: couldn't read bookmark $id to apply add_additional_tags" >&2
+        return 0
+    fi
+    title=$(jq -r '.title // ""' <<< "$bookmark_json")
+    tags_str=$(jq -r '.tags // ""' <<< "$bookmark_json")
+
+    new_str=$(_run_additional_tags_hook "$url" "$title" "$tags_str")
+    [[ -z "$new_str" ]] && return 0
+
     if ! buku --nostdin -u "$id" --tag + "$new_str" >/dev/null 2>&1; then
         echo "Warning: couldn't add tags '$new_str' to $url" >&2
         return 0
