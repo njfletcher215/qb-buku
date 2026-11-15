@@ -57,7 +57,7 @@ if [[ "$interactive" == true ]]; then
     fetched_title="${preview[0]:-}"
     fetched_tags="${preview[1]:-}"
 
-    title=$(printf '%s\n' "$fetched_title" | "${DMENU_CMD[@]}") || { qute_message "Cancelled"; exit 0; }
+    title=$(dmenu_entries "$fetched_title" | "${DMENU_CMD[@]}") || { qute_message "Cancelled"; exit 0; }
 
     included_tags=()
     if [[ "$AUTO_FETCH_TAGS" == true ]]; then
@@ -69,7 +69,7 @@ if [[ "$interactive" == true ]]; then
             while IFS= read -r -d '' tag; do tag_opts+=("$tag"); done < <(split_tags "$fetched_tags")
             multi_args=()
             while IFS= read -r -d '' word; do multi_args+=("$word"); done < <(dmenu_multi_flag_args)
-            selected=$(printf '%s\n' "${tag_opts[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
+            selected=$(dmenu_entries "${tag_opts[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
             while IFS= read -r line; do
                 [[ -n "$line" ]] && included_tags+=("$line")
             done <<< "$selected"

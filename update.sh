@@ -75,7 +75,7 @@ if [[ "$use_dmenu" == true ]]; then
     current_tags_str=$(jq -r '.tags' <<< "$bookmark_json")
 
     # Step 1: title, pre-populated with (and defaulting to) the current title.
-    new_title=$(printf '%s\n' "$current_title" | "${DMENU_CMD[@]}") || { qute_message "Cancelled"; exit 0; }
+    new_title=$(dmenu_entries "$current_title" | "${DMENU_CMD[@]}") || { qute_message "Cancelled"; exit 0; }
 
     existing_tags=()
     while IFS= read -r -d '' tag; do existing_tags+=("$tag"); done < <(split_tags "$current_tags_str")
@@ -87,7 +87,7 @@ if [[ "$use_dmenu" == true ]]; then
     # there's no way to choose a subset, so skip the picker and keep them all.
     kept_tags=()
     if [[ ${#existing_tags[@]} -gt 0 && -n "$DMENU_MULTI_FLAG" ]]; then
-        selected_existing=$(printf '%s\n' "${existing_tags[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
+        selected_existing=$(dmenu_entries "${existing_tags[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
         while IFS= read -r line; do
             [[ -n "$line" ]] && kept_tags+=("$line")
         done <<< "$selected_existing"
@@ -99,10 +99,7 @@ if [[ "$use_dmenu" == true ]]; then
     # list), excluding ones already kept. Without multi-select, skip straight past it.
     autocompleted_tags=()
     if [[ -n "$DMENU_MULTI_FLAG" ]]; then
-        all_tags=()
-        while IFS= read -r line; do
-            [[ "$line" =~ ^[[:space:]]*[0-9]+\.[[:space:]]+(.*)[[:space:]]\([0-9]+\)$ ]] && all_tags+=("${BASH_REMATCH[1]}")
-        done < <(buku --nostdin --stag 2>/dev/null)
+        mapfile -t all_tags < <(list_all_tags)
 
         offerable_tags=()
         for tag in "${all_tags[@]}"; do
@@ -114,7 +111,7 @@ if [[ "$use_dmenu" == true ]]; then
         done
 
         if [[ ${#offerable_tags[@]} -gt 0 ]]; then
-            selected_auto=$(printf '%s\n' "${offerable_tags[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
+            selected_auto=$(dmenu_entries "${offerable_tags[@]}" | "${DMENU_CMD[@]}" "${multi_args[@]}") || { qute_message "Cancelled"; exit 0; }
             while IFS= read -r line; do
                 [[ -n "$line" ]] && autocompleted_tags+=("$line")
             done <<< "$selected_auto"

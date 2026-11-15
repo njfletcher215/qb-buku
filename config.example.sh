@@ -93,10 +93,10 @@
 #    has_tag youtube_video,course && add_tag educational
 #}
 
-# Extra flags passed to qutebrowser when buku-browse launches it directly
+# Extra flags passed to qutebrowser when buku-browse or buku-random launches it directly
 # (i.e. when run outside of a running qutebrowser instance).
 #QUTEBROWSER_FLAGS=()
 
-# Extra environment variables (NAME=value) set for qutebrowser when buku-browse
-# launches it directly (i.e. when run outside of a running qutebrowser instance).
+# Extra environment variables (NAME=value) set for qutebrowser when buku-browse or
+# buku-random launches it directly (i.e. when run outside of a running qutebrowser instance).
 #QUTEBROWSER_ENV=()

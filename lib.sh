@@ -128,6 +128,25 @@ dmenu_multi_flag_args() {
     split_words "$DMENU_MULTI_FLAG"
 }
 
+# Prints each argument as one picker entry, terminated by the entry separator
+# BOOKMARK_FORMAT ends in (see pick_bookmarks()), so lists split into entries the
+# same way bookmarks do. Prints nothing if given no arguments.
+dmenu_entries() {
+    local sep="${BOOKMARK_FORMAT: -1}" entry
+    for entry in "$@"; do
+        printf '%s%s' "$entry" "$sep"
+    done
+}
+
+# Prints every tag in use across all bookmarks (buku --stag's tag list), one per line.
+list_all_tags() {
+    local line
+    while IFS= read -r line; do
+        [[ "$line" =~ ^[[:space:]]*[0-9]+\.[[:space:]]+(.*)[[:space:]]\([0-9]+\)$ ]] && printf '%s\n' "${BASH_REMATCH[1]}"
+    done < <(buku --nostdin --stag </dev/null 2>/dev/null)
+    return 0
+}
+
 # Splits TAGSTRING on ',' and
 # trims leading/trailing whitespace from each piece
 split_tags() {

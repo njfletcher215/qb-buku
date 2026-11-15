@@ -12,11 +12,12 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 | `update.sh` | Update a bookmark's URL, title, or tags (or interactively via a dmenu picker) |
 | `browse.sh` | Browse and open bookmarks via a dmenu-style picker |
 | `retag.sh` | Apply [`add_additional_tags`](#add_additional_tags) to existing bookmarks |
+| `random.sh` | Open one or more random bookmarks, optionally filtered by tags, domain, or title |
 
 ## Dependencies
 
 - [buku](https://github.com/jarun/buku) — installed system-wide via your package manager
-- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, `add-all.sh`, and `retag.sh`, and by `add.sh` when [`add_additional_tags`](#add_additional_tags) is defined
+- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, `add-all.sh`, `retag.sh`, and `random.sh`, and by `add.sh` when [`add_additional_tags`](#add_additional_tags) is defined
 - Python 3 with the `buku` module importable — used by `delete.sh` and `update.sh` (and by `add.sh`/`add-all.sh` when [`add_additional_tags`](#add_additional_tags) is defined) to resolve URLs to bookmark IDs; `install.sh` sets up a venv for this automatically
 - [yq](https://github.com/kislyuk/yq) — used by `add-all.sh` to read qutebrowser's session files
 - A dmenu-compatible picker — see [Configuration](#configuration)
@@ -72,6 +73,7 @@ $ cd ~/qb-buku && ./install.sh
    ln -s "$src/update.sh"  "$userscripts/buku-update"
    ln -s "$src/browse.sh"  "$userscripts/buku-browse"
    ln -s "$src/retag.sh"   "$userscripts/buku-retag"
+   ln -s "$src/random.sh"  "$userscripts/buku-random"
    ```
 
 5. Add the following to your `~/.config/qutebrowser/config.py`:
@@ -85,6 +87,7 @@ $ cd ~/qb-buku && ./install.sh
        'buku-update':  'spawn --userscript buku-update',
        'buku-browse':  'spawn --userscript buku-browse',
        'buku-retag':   'spawn --userscript buku-retag',
+       'buku-random':  'spawn --userscript buku-random',
    })
 
    # qb-buku keybindings
@@ -119,8 +122,8 @@ DMENU_CMD=(fuzzel --dmenu -p "bookmark")
 DMENU_CMD=(dmenu -i -p "bookmark")
 ```
 
-Can be overridden per-invocation with `buku-browse`'s, `buku-delete`'s, or
-`buku-update`'s `--dmenu-invocation <cmd>` flag.
+Can be overridden per-invocation with `buku-browse`'s, `buku-delete`'s,
+`buku-update`'s, or `buku-random`'s `--dmenu-invocation <cmd>` flag.
 
 You are responsible for ensuring that all required flags for your chosen dmenu-style picker are present. For example, if you inlucde pango markup in your `BOOKMARK_FORMAT`, you may have to pass a flag indicating the rows are styled (in `rofi`'s case, `-markup-rows`).
 
@@ -201,8 +204,8 @@ If neither `DMENU_CMD` nor `DMENU_MSG_FLAG` is set, `DMENU_MSG_FLAG` will defaul
 
 Flag(s) passed to `DMENU_CMD` to enable multi-select, used only where selecting multiple
 entries actually does something useful: `buku-browse -t`'s bookmark picker,
-`buku-delete -d`'s bookmark picker, and the tag-selection steps of interactive
-`buku-add` and `buku-update -d`. Different pickers expose this differently:
+`buku-delete -d`'s bookmark picker, the tag-selection steps of interactive
+`buku-add` and `buku-update -d`, and interactive `buku-random`'s tag picker. Different pickers expose this differently:
 
 ```bash
 # rofi
@@ -314,7 +317,7 @@ add_additional_tags() {
 
 ### `QUTEBROWSER_FLAGS`
 
-Extra flags passed to `qutebrowser` when `buku-browse` launches it directly (i.e. when
+Extra flags passed to `qutebrowser` when `buku-browse` or `buku-random` launches it directly (i.e. when
 run outside of a running qutebrowser instance). Empty by default.
 
 ```bash
@@ -323,8 +326,8 @@ QUTEBROWSER_FLAGS=(--backend webengine)
 
 ### `QUTEBROWSER_ENV`
 
-Extra environment variables set for `qutebrowser` when `buku-browse` launches it
-directly (i.e. when run outside of a running qutebrowser instance). Empty by default.
+Extra environment variables set for `qutebrowser` when `buku-browse` or `buku-random`
+launches it directly (i.e. when run outside of a running qutebrowser instance). Empty by default.
 
 ```bash
 # Always use the Fusion Qt style, regardless of system settings
@@ -547,4 +550,54 @@ Errors out if `add_additional_tags` isn't defined.
 :buku-retag
 :buku-retag --dry-run
 $ retag.sh 12 42 https://example.com
+```
+
+### `buku-random`
+
+```
+:buku-random [--domain|--title] [--all] [-t] [-n <N>] [-q|--quiet] [--dmenu-invocation <cmd>] [term, ...]
+```
+
+Pick one or more random bookmarks with buku's `--random`, optionally narrowing the pool
+first. Only one kind of filter applies at a time:
+
+- by default, **tags** (exact tag names, like buku's `--stag`)
+- `--domain`: the URL (buku's `:` search marker)
+- `--title`: the title (buku's `.` search marker)
+
+Terms are comma-separated (their arguments are joined with spaces, then split on commas,
+so multi-word terms need no quoting). A bookmark qualifies if it matches **any** of the
+terms; pass `--all` to require **all** of them. With no terms, the pick is from every
+bookmark.
+
+`--domain` and `--title` use buku's ordinary keyword search, which is not a host check:
+`--domain github.com` matches `github.com` anywhere in the URL, including the path or
+query string.
+
+`-n <N>` picks `N` distinct bookmarks (fewer if fewer match), and all of them are
+opened. The first respects `-t` (open in a new tab); any later ones always open in new
+tabs.
+
+If no terms are given on the command line, and `-q`/`--quiet` isn't given, you're
+prompted for them through the configured picker:
+
+- tags: a picker over every tag in use (multi-select if
+  [`DMENU_MULTI_FLAG`](#dmenu_multi_flag) is set); you can also type tags, comma-separated
+- `--domain`/`--title`: a free-text prompt, comma-separated
+
+If [`DMENU_MSG_FLAG`](#dmenu_msg_flag) is set, the prompt shows which filter and match
+mode are in use. Leave the prompt empty to pick from every bookmark; cancel it to abort.
+
+Like [`buku-browse`](#buku-browse), when run directly (outside of qutebrowser) it still
+prompts, and every pick opens in a new tab, regardless of `-t`, via `qutebrowser`
+launched with any [`QUTEBROWSER_FLAGS`](#qutebrowser_flags)/[`QUTEBROWSER_ENV`](#qutebrowser_env)
+you've configured.
+
+```
+:buku-random
+:buku-random -t -n 3
+:buku-random --all music, live
+:buku-random --domain youtube.com, vimeo.com
+:buku-random --title how to
+$ random.sh -n 5 recipes
 ```
