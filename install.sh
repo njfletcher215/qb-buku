@@ -62,7 +62,7 @@ userscripts_dir=$(prompt "Userscripts directory" "~/.config/qutebrowser/userscri
 userscripts_dir="$(expand_path "$userscripts_dir")"
 mkdir -p "$userscripts_dir"
 
-for script in add delete update browse; do
+for script in add add-all delete update browse; do
     src="$script_dir/${script}.sh"
     dest="$userscripts_dir/buku-${script}"
     if [[ -L "$dest" ]]; then

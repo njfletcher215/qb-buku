@@ -81,6 +81,20 @@ require_jq() {
     fi
 }
 
+# Requires the Python yq (https://github.com/kislyuk/yq), a jq wrapper for YAML --
+# not the unrelated Go yq of the same name, which uses a different syntax.
+require_yq() {
+    require_jq
+    if ! command -v yq &>/dev/null; then
+        qute_error "yq is required but not installed"
+        exit 1
+    fi
+    if ! yq --help 2>&1 | grep -q 'jq filter'; then
+        qute_error "yq must be the Python yq (kislyuk/yq), not the Go yq (mikefarah/yq)"
+        exit 1
+    fi
+}
+
 split_words() {
     xargs printf '%s\0' <<< "$1"
 }

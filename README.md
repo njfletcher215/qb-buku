@@ -7,6 +7,7 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 | Script | Description |
 |---|---|
 | `add.sh` | Bookmark the current page (or a given URL) |
+| `add-all.sh` | Bookmark every open tab (or several given URLs) with a shared title prefix and tags |
 | `delete.sh` | Delete one or more bookmarks by index, range, or URL |
 | `update.sh` | Update a bookmark's URL, title, or tags (or interactively via a dmenu picker) |
 | `browse.sh` | Browse and open bookmarks via a dmenu-style picker |
@@ -14,8 +15,9 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 ## Dependencies
 
 - [buku](https://github.com/jarun/buku) — installed system-wide via your package manager
-- [jq](https://jqlang.org) — used by `browse.sh`
+- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, and `add-all.sh`
 - Python 3 with the `buku` module importable — used by `delete.sh` and `update.sh` to resolve URLs to bookmark IDs; `install.sh` sets up a venv for this automatically
+- [yq](https://github.com/kislyuk/yq) — used by `add-all.sh` to read qutebrowser's session files
 - A dmenu-compatible picker — see [Configuration](#configuration)
 
 ## Installation
@@ -63,10 +65,11 @@ $ cd ~/qb-buku && ./install.sh
    src=~/qb-buku
 
    mkdir -p "$userscripts"
-   ln -s "$src/add.sh"    "$userscripts/buku-add"
-   ln -s "$src/delete.sh" "$userscripts/buku-delete"
-   ln -s "$src/update.sh" "$userscripts/buku-update"
-   ln -s "$src/browse.sh" "$userscripts/buku-browse"
+   ln -s "$src/add.sh"     "$userscripts/buku-add"
+   ln -s "$src/add-all.sh" "$userscripts/buku-add-all"
+   ln -s "$src/delete.sh"  "$userscripts/buku-delete"
+   ln -s "$src/update.sh"  "$userscripts/buku-update"
+   ln -s "$src/browse.sh"  "$userscripts/buku-browse"
    ```
 
 5. Add the following to your `~/.config/qutebrowser/config.py`:
@@ -74,10 +77,11 @@ $ cd ~/qb-buku && ./install.sh
    ```python
    # qb-buku aliases
    c.aliases.update({
-       'buku-add':    'spawn --userscript buku-add',
-       'buku-delete': 'spawn --userscript buku-delete',
-       'buku-update': 'spawn --userscript buku-update',
-       'buku-browse': 'spawn --userscript buku-browse',
+       'buku-add':     'spawn --userscript buku-add',
+       'buku-add-all': 'spawn --userscript buku-add-all',
+       'buku-delete':  'spawn --userscript buku-delete',
+       'buku-update':  'spawn --userscript buku-update',
+       'buku-browse':  'spawn --userscript buku-browse',
    })
 
    # qb-buku keybindings
@@ -294,6 +298,50 @@ Cancelling any of these prompts aborts the add.
 
 ```
 :buku-add
+```
+
+### `buku-add-all`
+
+```
+:buku-add-all [--windows <active|non-private|all>] [--prefix <prefix>] [--tags <tag, ...>]
+              [--auto-fetch-tags[=<true|false>]] [-q|--quiet] [URL ...]
+```
+
+Bookmark every open tab at once, giving all of them the same title prefix and tags.
+`buku-add-all` asks qutebrowser to save a temporary internal session,
+reads each tab's current URL and title from it, and then deletes the session file.
+Only `http(s)://` and `ftp(s)://` tabs are added.
+
+`--windows` chooses which windows to collect tabs from:
+
+- `active` (default): only the window `buku-add-all` was run from (even if private)
+- `non-private`: every window except private ones
+- `all`: every window, private ones included
+
+`--prefix` is prepended to every title (e.g. `--prefix "Research: "`).
+`--tags` is a comma-separated list of tags added to every bookmark.
+
+If [`AUTO_FETCH_TAGS`](#auto_fetch_tags) (or `--auto-fetch-tags`) is `true`, each page's
+own tags are fetched and your tags are appended to them, like `buku-add`. If it's
+`false`, nothing is fetched and each bookmark gets only your tags.
+
+Unless `-q`/`--quiet` is given, any of the prefix or tags that weren't passed on the
+command line are prompted for through the configured picker:
+
+1. A free-text prompt for the title prefix. Leave it empty for no prefix.
+2. A free-text prompt for the tags (comma-separated). Leave it empty for no tags.
+
+Cancelling either prompt aborts the run.
+
+If given explicit `URL`s, `buku-add-all` bookmarks those instead of any open tabs
+(regardless of whether it is being run as a qutebrowser userscript or via the command line)
+and does not trigger the interactive prompts.
+
+```
+:buku-add-all
+:buku-add-all --windows all
+:buku-add-all -q --prefix "Research: " --tags papers,todo
+$ add-all.sh --prefix "Research: " --tags papers https://example.com https://example.org
 ```
 
 ### `buku-delete`
