@@ -15,8 +15,8 @@ qutebrowser userscripts for managing [buku](https://github.com/jarun/buku) bookm
 ## Dependencies
 
 - [buku](https://github.com/jarun/buku) — installed system-wide via your package manager
-- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, and `add-all.sh`
-- Python 3 with the `buku` module importable — used by `delete.sh` and `update.sh` to resolve URLs to bookmark IDs; `install.sh` sets up a venv for this automatically
+- [jq](https://jqlang.org) — used by `browse.sh`, `delete.sh`, `update.sh`, and `add-all.sh`, and by `add.sh` when [`add_additional_tags`](#add_additional_tags) is defined
+- Python 3 with the `buku` module importable — used by `delete.sh` and `update.sh` (and by `add.sh`/`add-all.sh` when [`add_additional_tags`](#add_additional_tags) is defined) to resolve URLs to bookmark IDs; `install.sh` sets up a venv for this automatically
 - [yq](https://github.com/kislyuk/yq) — used by `add-all.sh` to read qutebrowser's session files
 - A dmenu-compatible picker — see [Configuration](#configuration)
 
@@ -232,6 +232,80 @@ PYTHON=/home/you/.local/share/qb-buku/venv/bin/python3
 Can be overridden per-invocation with `buku-delete`'s or `buku-update`'s
 `--python-invocation <path>` flag.
 
+### `add_additional_tags`
+
+An optional bash function that adds tags automatically, based on rules you write in
+bash. It is unset by default. An example can be found below, or in `config.example.sh`.
+
+```bash
+add_additional_tags() {
+    domain_is youtube.com youtu.be && add_tag youtube_video
+    [[ ${BOOKMARK_TITLE,,} == *"how to"* ]] && add_tag how_to
+    # Must come after any rule that can add youtube_video or course
+    has_tag youtube_video,course && add_tag educational
+}
+```
+
+#### When it runs
+
+Once for each new bookmark added (via `buku-add` or `buku-add-all`).
+It runs after all other tag selection, so it sees
+[auto-fetched](#auto_fetch_tags) and the user-supplied tags.
+
+#### Variables
+
+| Variable | Contents |
+|---|---|
+| `BOOKMARK_URL` | The stored URL |
+| `BOOKMARK_TITLE` | The stored title (may be empty) |
+| `BOOKMARK_DOMAIN` | The URL's host, lowercased, without scheme, user, port, or path (e.g. `www.youtube.com`) |
+| `BOOKMARK_TAGS` | Array of the bookmark's current tags, lowercased (buku stores all tags in lowercase) |
+
+#### Helpers
+
+| Helper | Behavior |
+|---|---|
+| `add_tag TAG, ...` | Adds each `TAG` (trimmed, lowercased) unless the bookmark already has it |
+| `has_tag TAG, ...` | True if the bookmark has **all** of the given tags (case-insensitive) |
+| `has_any_tag TAG, ...` | True if the bookmark has **any** of the given tags (case-insensitive) |
+| `domain_is DOMAIN...` | True if `BOOKMARK_DOMAIN` is any `DOMAIN` or a subdomain of one: `youtube.com` matches `youtube.com` and `www.youtube.com`, but not `notyoutube.com` |
+
+For titles and URLs, use plain bash tests:
+
+```bash
+[[ ${BOOKMARK_TITLE,,} == *"how to"* ]]           # case-insensitive substring
+[[ $BOOKMARK_URL =~ ^https://github\.com/[^/]+/[^/]+/issues/ ]]  # regex
+```
+
+Like buku, `add_tag`, `has_tag`, and `has_any_tag` take a **comma-separated** list of
+tags: their arguments are joined with spaces, then split on commas. Multi-word tags need
+no quoting, and tags can't contain commas:
+
+```bash
+add_tag camera phone,video      # adds "camera phone" and "video"
+has_tag "camera phone"          # same as: has_tag camera phone
+has_any_tag music,podcast       # true if either tag is present
+```
+
+`domain_is`, unlike the tag helpers, takes space-separated domains.
+
+#### Order and compound rules
+
+The function runs **exactly once**, top to bottom. Tags added with `add_tag` are visible
+right away to later `has_tag`/`has_any_tag` checks in the same run. So a rule that
+depends on tags other rules add (like `educational` above, which needs `youtube_video`)
+must come *after* those rules. Combine conditions with ordinary bash `&&`, `||`, `!`,
+`if`, and `case`:
+
+```bash
+add_additional_tags() {
+    domain_is youtube.com youtu.be && add_tag youtube_video
+    if has_tag youtube_video && ! has_any_tag music,podcast; then
+        add_tag watch_later
+    fi
+}
+```
+
 ### `QUTEBROWSER_FLAGS`
 
 Extra flags passed to `qutebrowser` when `buku-browse` launches it directly (i.e. when
@@ -300,6 +374,10 @@ Cancelling any of these prompts aborts the add.
 :buku-add
 ```
 
+Interactive or not, if [`add_additional_tags`](#add_additional_tags) is defined, it is
+run once the bookmark has been added, and any tags it adds are shown in the "Added"
+message.
+
 ### `buku-add-all`
 
 ```
@@ -343,6 +421,9 @@ and does not trigger the interactive prompts.
 :buku-add-all -q --prefix "Research: " --tags papers,todo
 $ add-all.sh --prefix "Research: " --tags papers https://example.com https://example.org
 ```
+
+If [`add_additional_tags`](#add_additional_tags) is defined, it is run for each newly
+added bookmark, and any tags it adds are listed per URL in the output.
 
 ### `buku-delete`
 

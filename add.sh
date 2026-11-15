@@ -126,7 +126,12 @@ if [[ $buku_exit_code -ne 0 ]]; then
 elif [[ "$(strip_ansi "$buku_stderr")" =~ ^\[ERROR\] ]]; then
     qute_message "$url already exists"
 else
-    qute_message "Added $url"
+    additional_tags=$(apply_additional_tags "$url")
+    if [[ -n "$additional_tags" ]]; then
+        qute_message "Added $url (additional tags: $additional_tags)"
+    else
+        qute_message "Added $url"
+    fi
 fi
 
 printf '%s\n' "$buku_stdout"

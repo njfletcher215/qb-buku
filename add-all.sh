@@ -198,6 +198,8 @@ for i in "${!urls[@]}"; do
         existing=$((existing + 1))
     else
         added=$((added + 1))
+        additional_tags=$(apply_additional_tags "$url")
+        [[ -n "$additional_tags" ]] && echo "$url: additional tags: $additional_tags"
     fi
 
     printf '%s\n' "$buku_stdout"

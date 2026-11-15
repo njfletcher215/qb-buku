@@ -141,6 +141,113 @@ split_tags() {
     done
 }
 
+# Helpers for the user-defined add_additional_tags hook
+# Inside the hook, BOOKMARK_URL, BOOKMARK_TITLE, BOOKMARK_DOMAIN and the
+# BOOKMARK_TAGS array describe the bookmark as buku stored it.
+_hook_tags() {
+    local IFS=' '
+    split_tags "$*"
+}
+
+# True if TAG (a single tag) is in BOOKMARK_TAGS (case-insensitive).
+_hook_has_one_tag() {
+    local existing
+    for existing in "${BOOKMARK_TAGS[@]}"; do
+        [[ "${existing,,}" == "${1,,}" ]] && return 0
+    done
+    return 1
+}
+
+# Appends each comma-separated TAG (lowercased) to BOOKMARK_TAGS unless already present.
+add_tag() {
+    local tag
+    while IFS= read -r -d '' tag; do
+        _hook_has_one_tag "$tag" || BOOKMARK_TAGS+=("${tag,,}")
+    done < <(_hook_tags "$@")
+}
+
+# True if every comma-separated TAG is in BOOKMARK_TAGS (case-insensitive).
+has_tag() {
+    local tag
+    while IFS= read -r -d '' tag; do
+        _hook_has_one_tag "$tag" || return 1
+    done < <(_hook_tags "$@")
+}
+
+# True if any comma-separated TAG is in BOOKMARK_TAGS (case-insensitive).
+has_any_tag() {
+    local tag
+    while IFS= read -r -d '' tag; do
+        _hook_has_one_tag "$tag" && return 0
+    done < <(_hook_tags "$@")
+    return 1
+}
+
+# True if BOOKMARK_DOMAIN is any DOMAIN or a subdomain of one
+# (youtube.com matches www.youtube.com, but not notyoutube.com).
+domain_is() {
+    local domain
+    for domain in "$@"; do
+        domain="${domain,,}"
+        [[ "$BOOKMARK_DOMAIN" == "$domain" || "$BOOKMARK_DOMAIN" == *".$domain" ]] && return 0
+    done
+    return 1
+}
+
+# Runs the add_additional_tags hook, if the config defines one, against the stored
+# bookmark for URL, then appends any tags it added.
+apply_additional_tags() {
+    declare -F add_additional_tags &>/dev/null || return 0
+
+    local url="$1" id bookmark_json title tags_str
+    require_jq
+    if ! id=$("$PYTHON" "$here/get-id-by-url.py" "$url" 2>/dev/null); then
+        echo "Warning: couldn't look up $url to apply add_additional_tags" >&2
+        return 0
+    fi
+    bookmark_json=$(buku --nostdin --print "$id" -j 2>/dev/null) || bookmark_json=""
+    if [[ -z "$bookmark_json" ]]; then
+        echo "Warning: couldn't read bookmark $id to apply add_additional_tags" >&2
+        return 0
+    fi
+    title=$(jq -r '.title // ""' <<< "$bookmark_json")
+    tags_str=$(jq -r '.tags // ""' <<< "$bookmark_json")
+
+    local -a original_tags=() final_tags=() new_tags=()
+    local tag
+    while IFS= read -r -d '' tag; do original_tags+=("${tag,,}"); done < <(split_tags "$tags_str")
+
+    while IFS= read -r -d '' tag; do final_tags+=("$tag"); done < <(
+        set +euo pipefail
+        BOOKMARK_URL="$url"
+        BOOKMARK_TITLE="$title"
+        BOOKMARK_DOMAIN="${url#*://}"
+        BOOKMARK_DOMAIN="${BOOKMARK_DOMAIN%%[/?#]*}"
+        BOOKMARK_DOMAIN="${BOOKMARK_DOMAIN##*@}"
+        BOOKMARK_DOMAIN="${BOOKMARK_DOMAIN%:*}"
+        BOOKMARK_DOMAIN="${BOOKMARK_DOMAIN,,}"
+        BOOKMARK_TAGS=("${original_tags[@]}")
+        add_additional_tags >&2
+        printf '%s\0' "${BOOKMARK_TAGS[@]}"
+    )
+
+    local -A is_original=()
+    for tag in "${original_tags[@]}"; do is_original["$tag"]=1; done
+    for tag in "${final_tags[@]}"; do
+        [[ -z "${is_original[$tag]:-}" ]] && new_tags+=("$tag")
+    done
+    [[ ${#new_tags[@]} -eq 0 ]] && return 0
+
+    local new_str
+    printf -v new_str '%s, ' "${new_tags[@]}"
+    new_str="${new_str%, }"
+    if ! buku --nostdin -u "$id" --tag + "$new_str" >/dev/null 2>&1; then
+        echo "Warning: couldn't add tags '$new_str' to $url" >&2
+        return 0
+    fi
+    printf '%s\n' "$new_str"
+}
+
 # Number of physical lines one rendered BOOKMARK_FORMAT entry occupies, used to
 # split multi-selected picker output back into one chunk per entry. BOOKMARK_FORMAT
 # is expected to end in its own trailing separator character (see pick_bookmarks()),
